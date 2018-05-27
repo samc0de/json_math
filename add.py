@@ -26,7 +26,7 @@ def _are_all_compatible(*objects):
   base_type = None
   for obj in objects:
     obj_type = type(obj)
-    if base_type is None:
+    if not base_type:
       base_type = obj_type
     elif base_type != obj_type:
       return False
@@ -44,11 +44,27 @@ def _are_all_compatible(*objects):
   #   raise TypeIncompatibilityError(value=value), None, traceback
 
 
-
-
 def add(*args):
   """Add json/dict objects."""
   # Provide way of passing options to json.loads via kwargs.
   objects = map(json.loads, args)
   if not _are_all_compatible(objects):
     raise TypeIncompatibilityError()
+  return json.dumps(_add(*objects))
+
+def _add(*args):
+  if all(hasattr(obj, '__add__') for obj in args):
+    start = type(args[0])()  # base_additive
+    return sum(args, start)
+  elif isinstance(args[0], dict):
+    result = {}
+    for key, value in sum((d.items() for d in args), []):
+      if key not in result:
+        result[key] = value
+      else:
+        result[key] = _add(result[key], value)
+    return result
+  raise TypeIncompatibilityError()
+
+
+
